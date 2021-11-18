@@ -1,0 +1,355 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 #!/usr/bin/env python3\
+# -*- coding: utf-8 -*-\
+"""\
+Created on Tue Feb  5 14:43:10 2019\
+\
+@author: 1vn\
+"""\
+\
+# Load libraries\
+import pandas as pd\
+from pandas.plotting import scatter_matrix\
+import matplotlib.pyplot as plt\
+#import plotly.plotly as py\
+\
+from scipy.fftpack import fft, fftfreq\
+import numpy as np\
+\
+from sklearn import model_selection, svm, metrics\
+from sklearn.svm import SVC\
+from sklearn.model_selection import train_test_split\
+from sklearn.metrics import classification_report\
+from sklearn.metrics import confusion_matrix\
+from sklearn.metrics import accuracy_score\
+from sklearn.linear_model import LogisticRegression\
+from sklearn.tree import DecisionTreeClassifier\
+from sklearn.neighbors import KNeighborsClassifier\
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis\
+from sklearn.naive_bayes import GaussianNB\
+\
+\
+#==========================================================================\
+\
+#load dataset 'e058-u-001-h.csv'\
+filename1 = 'Engine/EngineData/e058-No-Cycles.csv'\
+filename2 = 'Engine/EngineData/e058-No-Cycles-No-Labels.csv'\
+col_names=['IMEP_Net','IMEP_Gross','Heat_Release','Change','Percentile']\
+dataset_Labels = pd.read_csv(filename1)#,names = col_names)\
+dataset_No_Labels = pd.read_csv(filename2,names = col_names)\
+#values = dataset.loc[0:1008,col_names[0]:col_names[2]]\
+values = pd.read_csv(filename1,header=None)\
+#print('Values: \\n',values)\
+\
+#Datashape\
+print('Data Shape: \\n',dataset_Labels.shape)\
+#each file has 1009 instances of 3 attributes\
+\
+#peak at the first 20 rows\
+print('Data Head: \\n',dataset_Labels.head(20))\
+\
+#run some statistics on the data\
+data_stats = dataset_Labels.describe()\
+print('Data Description: \\n',data_stats)\
+\
+##analyze the distribution by showing how many elements are in each category\
+#print(dataset.groupby(names).size())\
+IMEP_Net_list = dataset_Labels['IMEP_Net'].tolist()\
+IMEP_Gross_list = dataset_Labels['IMEP_Gross'].tolist()\
+Heat_Release_list = dataset_Labels['Heat_Release'].tolist()\
+Change_list = dataset_Labels['Change'].tolist()\
+Percentile_list = dataset_Labels['Percentile'].tolist()\
+Test_Data = dataset_Labels['Test_Data'].tolist()\
+dataset_Labels_List = list(zip(IMEP_Net_list,IMEP_Gross_list,Heat_Release_list,Change_list,Percentile_list))\
+# =============================================================================\
+# plt.plot(IMEP_Net_list)\
+# plt.show()\
+# plt.plot(IMEP_Gross_list)\
+# plt.show()\
+# plt.plot(Heat_Release_list)\
+# plt.show()\
+# =============================================================================\
+#3x3 scatter matrix\
+import seaborn as sns\
+sns.set(style="ticks")\
+plot = sns.pairplot(dataset_No_Labels)\
+plot.fig.suptitle('Scatter Matrix (Seaborn): No Label Data Set', fontsize=16)\
+\
+#========================================================================\
+\
+#visualize dataset\
+\
+#box plot\
+dataset_No_Labels.plot(kind='box', subplots=True, layout=(5,1), sharex=True, sharey=False)\
+plt.suptitle('Box Plot: No Label Data Set', fontsize=16)\
+plt.show()\
+\
+#histgram\
+dataset_No_Labels.hist()\
+plt.suptitle('Histogram: No Label Data Set', fontsize=16)\
+plt.show()\
+\
+#scatter plot matrix\
+scatter_matrix(dataset_No_Labels)\
+plt.suptitle('Scatter Matrix: No Label Data Set', fontsize=16)\
+plt.show()\
+\
+#compare all three signals on line graph\
+f,(ax1,ax2,ax3,ax4,ax5) = plt.subplots(5, sharex=True,sharey=False)\
+ax1.plot(IMEP_Net_list[:20])\
+ax1.set_title('Signal Comparison: No Label Data Set', fontsize=16)\
+ax2.plot(IMEP_Gross_list[:20])\
+ax3.plot(Heat_Release_list[:20])\
+ax4.plot(Change_list[:20])\
+ax5.plot(Percentile_list[:20],color='r')\
+f.subplots_adjust(hspace=0)\
+#plt.setp([ax.get_ticklabels() for ax in f.axes[:-1]],visible=False)\
+plt.show()\
+#max(set(Heat_Release_list), key=Heat_Release_list)\
+#print('Max Frequency: ')\
+# =============================================================================\
+# fig = plt.figure(dataset_No_Labels)\
+# dataset_No_Labels.fig.plot(kind='box', subplots=False, layout=(3,1), sharex=True, sharey=True)\
+# fig.suptitle('Signal Comparison: No Label Data Set', fontsize=16)\
+# fig.show()\
+# =============================================================================\
+\
+\
+##dataset.applymap()\
+#ax = fig.add_subplot(IMEP_Net_list,IMEP_Gross_list,Heat_Release_list)\
+#plt.plot(kind='box', subplots=False, layout=(3,1), sharex=True, sharey=True)\
+#ax.set_xticklabels(col_names)\
+#plt.show()\
+# =============================================================================\
+# \
+# #plot imep_net values by cycle #\
+# plt.plot(dataset_No_Labels.IMEP_Net)\
+# print('IMEP NET\\n')\
+# plt.show()\
+# =============================================================================\
+#looks a mess right? were trying to look at amplitude by time stamp and its too much\
+\
+#==========================================================================\
+#dataset_X = dataset_No_Labels\
+#dataset_Y = col_names\
+#np.unique(dataset_Y)\
+#np.random.seed(0)\
+#indices = np.random.permutation(len(dataset_X))\
+#dataset_X_train = dataset_X[indices[:2]]\
+#dataset_Y_train = dataset_Y[indices[:2]]\
+#dataset_X_test = dataset_X[indices[:2]]\
+#dataset_Y_test = dataset_Y[indices[:2]]\
+#\
+#knn = KNeighborsClassifier()\
+#knn.fit(dataset_X_train, dataset_Y_train)\
+#\
+#print("Accuracy on training set is : \{\}".format(knn.score(dataset_X_train, dataset_Y_train)))\
+#print("Accuracy on test set is : \{\}".format(knn.score(dataset_X_test, dataset_Y_test)))\
+#\
+##KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski',\
+##           metric_params=None, n_jobs=None, n_neighbors=5, p=2,\
+##           weights='uniform')\
+#\
+#Y_test_pred = knn.predict(dataset_X_test)\
+#print('classification_report: \\n',classification_report(dataset_Y_test,Y_test_pred))\
+#X_train, X_test, Y_train,y_test = train_test_split(dataset_X,dataset_Y, test_size=0.3,random_state=0)\
+#\
+#\
+#\
+#\
+#\
+#\
+# =============================================================================\
+# #lets try amplitde by frequency\
+# \
+# #first, perform a fft\
+# values = np.array([dataset.IMEP_Net])\
+# signal = fft(values)\
+# print('My Signal: \\n',signal)\
+# plt.plot(signal)\
+# plt.show()\
+# \
+# #Sample Points\
+# N = 1000\
+# \
+# #Sample Frequency\
+# f_s = .5\
+# \
+# #Sample Spacing\
+# T = 1.0/f_s\
+# \
+# x = np.linspace(0.0, N*T, N)\
+# y = np.sin(2.0 * np.pi / 2*x) + .5**np.random.randn(x.size)\
+# yf = fft(y)\
+# xf = np.linspace(0.0,1.0/(2.0*T),N/2)\
+# \
+# fig,ax = plt.subplots()\
+# ax.plot(xf, 2.0/N * np.abs(yf[:N//2]))\
+# plt.show()\
+# print('\\n Done!-----------------------------------------------> \\n')\
+# \
+# =============================================================================\
+#K NEAREST NEIGHBOR CLASSIFICATION ---HEAT RELEASE\
+\
+#Features\
+#values = Heat_Release_list\
+#print(values,'\\n====================================================')\
+#values = np.asarray(Heat_Release_list)\
+#print(values)\
+X = np.reshape((np.asarray(Heat_Release_list)),(-1,1))\
+\
+print(X)\
+\
+#Label\
+Y = np.reshape((np.asarray(Percentile_list)),(-1,1))\
+print(Y)\
+\
+#Split data into train and test sets\
+X_train,X_test,Y_train,Y_test = train_test_split(X,Y,)\
+\
+#Create Model\
+model = KNeighborsClassifier(n_neighbors=1)\
+\
+#Train Model\
+model.fit(X_train,Y_train.ravel())\
+#print(model)\
+\
+#Predict Output\
+Y_pred = model.predict(X_test)\
+print('KNN Accuracy: ',metrics.accuracy_score(Y_test,Y_pred))\
+print(confusion_matrix(Y_test,Y_pred))\
+print(classification_report(Y_test,Y_pred))\
+\
+\
+#================================================================================\
+#use max, min, and median as the range for the amplitudes.\
+\
+minAmp = data_stats.Heat_Release[3]\
+lower25 = data_stats.Heat_Release[4]\
+medianAmp =data_stats.Heat_Release[5]\
+upper75 = data_stats.Heat_Release[6]\
+maxAmp = data_stats.Heat_Release[7]\
+\
+print('#================================================================================\\n')\
+print('\\nHeat Release Min:    ',minAmp)\
+print('Heat Release 25th  : ',lower25)\
+print('Heat Release Median: ',medianAmp)\
+print('Heat Release 75th:   ',upper75)\
+print('Heat Release Max:    ',maxAmp)\
+\
+\
+xMax = 20\
+plt.plot(Heat_Release_list[:xMax])\
+#sigPlot.sup_title("Frequency plot of Heat Release")\
+#sigPlot.set_autoscaley_on(False)\
+plt.ylim(minAmp,maxAmp)\
+plt.xlim(0,xMax)\
+#place horizontal line at y = median\
+plt.axhline(y=medianAmp, color='r',linewidth=2, linestyle='-')\
+plt.show()\
+\
+\
+\
+\
+\
+#compare all three signals on line graph\
+f,(ax1,ax2) = plt.subplots(2, sharex=True,sharey=True)\
+ax1.plot(Heat_Release_list[:20])\
+ax1.set_title('Signal Comparison: 0.58 vs 0.75', fontsize=16)\
+ax2.plot(Test_Data[:20],color='r')\
+f.subplots_adjust(hspace=0)\
+#plt.setp([ax.get_ticklabels() for ax in f.axes[:-1]],visible=False)\
+plt.show()\
+\
+\
+\
+\
+\
+#===================================================================================\
+\
+#create a list that determines what percentile each value is in\
+#print(Heat_Release_list)\
+#print(Heat_Release_list)\
+#print(len(Heat_Release_list))\
+#percentile = []\
+#print('Percentile: ',percentile)\
+\
+#for eachElement in range (len(Heat_Release_list)):\
+#    if(Heat_Release_list[eachElement] <= lower25):\
+#        percentile.append(1)\
+#    elif((Heat_Release_list[eachElement] > lower25) & (Heat_Release_list[eachElement] <= medianAmp)):\
+#        percentile.append(2)        \
+#    elif((Heat_Release_list[eachElement] > medianAmp) & (Heat_Release_list[eachElement] <= upper75)):\
+#        percentile.append(3)\
+#    elif(Heat_Release_list[eachElement] > upper75):\
+#        percentile.append(4)\
+    #print(percentile[eachElement])\
+#print(len(percentile))\
+#print('\\nPercentile Ranges Encoded: \\n',percentile)\
+\
+\
+\
+\
+# =============================================================================\
+# frequency = np.fftfreq(len(values).)\
+# \
+# \
+# #import numpy as np\
+# time_step = 99 #no overlap or underlap\
+# period = 5.\
+# time_vec = np.arange(0, 20, time_step)\
+# sig = np.sin(2 * np.pi / period * time_vec) + 0.5 *np.random.randn(time_vec.size)\
+# print sig.size\
+# \
+# \
+# sample_freq = fftpack.fftfreq(sig.size, d = time_step)\
+# sig_fft = fftpack.fft(sig)\
+# print sig_fft\
+# \
+# power = np.abs(y)\
+# #now lets visualize the transform\
+# \
+# #sampling rate\
+# twice my highest frequency = 70\
+# \
+# #set size of each sample\
+# #10 cycles in each sample so like 10 seconds\
+# \
+# #set number of samples\
+# N = 99 #99 samples\
+# \
+# #set sample frame/window size\
+# N = 1009\
+# =============================================================================\
+\
+#frequency of samples\
+\
+# =============================================================================\
+# #create dataframe for better visualization\
+# df = pd.DataFrame(dataset,columns=['Cycle','IMEP_Net','IMEP_Gross','HR'])\
+# \
+# #peak at the first 20 rows\
+# print('Data Head: \\n',df.head(20))\
+# \
+# plt.scatter(df.Cycle,df.IMEP_Net)\
+# plt.show()\
+# \
+# plt.scatter(df.Cycle,df.IMEP_Gross)\
+# plt.show()\
+# \
+# plt.scatter(df.Cycle,df.HR)\
+# plt.show()\
+# \
+# plt.scatter(df.IMEP_Net,df.IMEP_Gross)\
+# plt.show()\
+# \
+# =============================================================================\
+\
+\
+}
